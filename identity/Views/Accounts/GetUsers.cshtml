@@ -1,0 +1,23 @@
+﻿@model IEnumerable<UsersViewModel>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>@Html.DisplayNameFor(model => model.UserName)</th>
+            <th>@Html.DisplayNameFor(model => model.Email)</th>
+            <th>@Html.DisplayNameFor(model => model.Phone)</th>
+            <th>@Html.DisplayNameFor(model => model.City)</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var user in Model)
+        {
+            <tr>
+                <td>@user.UserName.Split("@")[0]</td>
+                <td>@user.Email</td>
+                <td>@user.Phone</td>
+                <td>@user.City</td>
+            </tr>
+        }
+    </tbody>
+</table>

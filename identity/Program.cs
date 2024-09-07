@@ -1,4 +1,5 @@
 using identity.Data;
+using identity.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,7 +18,7 @@ namespace identity
                 options.UseSqlServer(connectionString));
 
 
-            builder.Services.AddIdentity<IdentityUser,IdentityRole >()
+            builder.Services.AddIdentity<ApplicationUser, IdentityRole >()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
 

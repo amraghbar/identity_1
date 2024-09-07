@@ -19,7 +19,8 @@ namespace identity.Models.ViewModel
         [Compare(nameof(Password))]
         public string ConfirmPassWord { get; set; }
         public string Phone { get; set; }
-
+        public string City { get; set; }
+        public string Gender { get; set; }
 
     }
 }
