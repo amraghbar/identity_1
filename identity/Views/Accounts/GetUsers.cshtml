@@ -7,6 +7,9 @@
             <th>@Html.DisplayNameFor(model => model.Email)</th>
             <th>@Html.DisplayNameFor(model => model.Phone)</th>
             <th>@Html.DisplayNameFor(model => model.City)</th>
+            <th>@Html.DisplayNameFor(model => model.Roles)</th>
+            <th> Operations</th>
+
         </tr>
     </thead>
     <tbody>
@@ -17,6 +20,26 @@
                 <td>@user.Email</td>
                 <td>@user.Phone</td>
                 <td>@user.City</td>
+                <td>
+                    @foreach (var role in user.Roles)
+                    {
+                        <span> @role</span>
+                    }
+
+@*                     @string.Join(", ",user.Roles);
+ *@                </td>
+ <td>
+                    @if (User.IsInRole("Admin") || User.IsInRole("hr"))
+                    {
+
+                        <a asp-controller="Accounts" asp-action="EditUserRole" asp-route-id="@user.id">
+                            Change Role
+
+                        </a>
+
+                    }
+
+ </td>
             </tr>
         }
     </tbody>

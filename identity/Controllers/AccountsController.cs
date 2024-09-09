@@ -1,20 +1,24 @@
 ﻿using identity.Data;
 using identity.Models;
 using identity.Models.ViewModel;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace identity.Controllers
 {
-    public class AccountsController : Controller
+    [Authorize(Roles ="Admin,hr")]
+     public class AccountsController : Controller
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly SignInManager<ApplicationUser> signInManager;
         private readonly RoleManager<IdentityRole> roleManager;
+        private readonly object userManage;
 
         public AccountsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager,RoleManager<IdentityRole>roleManager)
         {
@@ -23,17 +27,17 @@ namespace identity.Controllers
             this.signInManager = signInManager;
             this.roleManager = roleManager;
         }
-
+        [AllowAnonymous]
         public IActionResult Register()
         {
             return View();
         }
+        [AllowAnonymous]
 
         [HttpPost]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
-            if (ModelState.IsValid)
-            {
+            
                 ApplicationUser user = new ApplicationUser
                 {
                     Email = model.Email,
@@ -47,22 +51,36 @@ namespace identity.Controllers
 
                 if (result.Succeeded)
                 {
+                    // Check if the role "User" exists
+                    if (!await roleManager.RoleExistsAsync("User"))
+                    {
+                        // Create the role if it does not exist
+                        var roleResult = await roleManager.CreateAsync(new IdentityRole("User"));
+
+                        // Check if the role creation succeeded
+                        if (!roleResult.Succeeded)
+                        {
+                            return View(model);
+                        }
+                    }
+
+                    // Assign the "User" role to the newly created user
+                    await userManager.AddToRoleAsync(user, "User");
+
                     return RedirectToAction("Login");
                 }
 
-                foreach (var error in result.Errors)
-                {
-                    ModelState.AddModelError("", error.Description);
-                }
-            }
+            
 
             return View(model);
         }
+        [AllowAnonymous]
 
         public IActionResult Login()
         {
             return View();
         }
+        [AllowAnonymous]
 
         [HttpPost]
         public async Task<IActionResult> Login(LoginViewModel model)
@@ -80,20 +98,32 @@ namespace identity.Controllers
             return View(model);
         }
 
-        public IActionResult GetUsers()
+        public async Task<IActionResult> GetUsers()
         {
             var users = userManager.Users.ToList();
 
-            var userViewModels = users.Select(x => new UsersViewModel
+            var userViewModels = new List<UsersViewModel>();
+
+            foreach (var user in users)
             {
-                Email = x.Email,
-                Phone = x.PhoneNumber,
-                UserName = x.Email,
-                City = x.City
-            }).ToList(); 
+                var roles = await userManager.GetRolesAsync(user);
+
+                var userViewModel = new UsersViewModel
+                {
+                    id = user.Id,
+                    Email = user.Email,
+                    Phone = user.PhoneNumber,
+                    UserName = user.Email,
+                    City = user.City,
+                    Roles = roles
+                };
+
+                userViewModels.Add(userViewModel);
+            }
 
             return View(userViewModels);
         }
+
         [HttpGet]
         public IActionResult CreateRole()
         {
@@ -162,8 +192,7 @@ namespace identity.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> EditRole(RoleViewModel model)
-        {
+        public async Task<IActionResult> EditRole(RoleViewModel model) {
            
             var role = await roleManager.FindByIdAsync(model.Id);
 
@@ -179,5 +208,39 @@ namespace identity.Controllers
        
             return View(model); 
         }
+
+
+        public ActionResult EditUserRole(string id ) {
+
+            var ViewModel =new EditUserRoleViewModel {  
+            Id = id,
+            RolesList= roleManager.Roles.Select(
+                role=> new SelectListItem {
+                Value=role.Id,
+                Text=role.Name
+                }
+                ).ToList(),
+            };
+            return View(ViewModel);
+
+        }
+        [HttpPost]
+        public async Task<IActionResult> EditUserRole(EditUserRoleViewModel model) {
+            var user = await userManager.FindByIdAsync(model.Id);
+            var currentRoles = await userManager.GetRolesAsync(user);
+            var result = await userManager.RemoveFromRolesAsync(user, currentRoles);
+            var role =await roleManager.FindByIdAsync(model.SelectRoles);
+            await userManager.AddToRoleAsync(user, role.Name);
+
+            return RedirectToAction(nameof(GetUsers));
+
+        }
+
+        public async Task<IActionResult> Logout() { 
+        await signInManager.SignOutAsync();
+            return RedirectToAction(nameof(Login));
+        }
+
     }
+
 }
